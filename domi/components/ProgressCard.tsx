@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { EXHIBITS } from "@/data/exhibits";
-import { getDomis } from "@/lib/data";
+import Domi from "./Domi";
+import { getDomiBySlug, getDomis } from "@/lib/data";
 import { getVisits } from "@/lib/recommend";
 import { isLoggedIn, useLocal } from "@/lib/store";
 
@@ -13,9 +14,11 @@ export default function ProgressCard() {
   if (!local) return null;
   if (!isLoggedIn(local)) {
     return (
-      <div className="mx-4 flex items-center gap-3 rounded-[24px] bg-white p-4 shadow-[0_4px_0_#DCE3EA]">
+      <div className="mx-4 flex items-center gap-3 rounded-[24px] bg-purple-light/50 p-4 shadow-[0_4px_0_#E3C6EC]">
+        <div className="-my-2 shrink-0"><Domi domi={getDomiBySlug("happy")} size={48} pose="wave" shadow={false} tappable={false} /></div>
         <div className="min-w-0 flex-1">
-          <p className="display text-[17px] leading-tight">Track your progress</p>
+          <p className="display text-[17px] leading-tight">Don&apos;t let them wander off!</p>
+          <p className="text-[13px] font-bold text-navy/60">Sign in to keep your Domis forever.</p>
         </div>
         <Link href={`/save?mode=login&next=${encodeURIComponent(path)}`} className="chunky shrink-0 rounded-full bg-purple px-4 py-2.5 text-sm font-black text-white" style={{ ["--btn-edge" as string]: "#5C2470", borderRadius: 999 }}>Sign in</Link>
       </div>

@@ -11,26 +11,20 @@ import NextStops from "@/components/NextStops";
 import TabBar from "@/components/TabBar";
 import { CalendarIcon, PinIcon, SearchIcon } from "@/components/Icons";
 import { EXHIBITS, GROUPS } from "@/data/exhibits";
-import { daysLeft, daysUntil, formatShort, getActiveLimitedHunts, getDomiBySlug, getUpcomingHunts } from "@/lib/data";
+import { formatShort, getDomiBySlug, now } from "@/lib/data";
+import { EVENTS } from "@/data/events";
 import { getVisits } from "@/lib/recommend";
 import { useLocal } from "@/lib/store";
-import type { Domi, Exhibit } from "@/lib/types";
+import type { Exhibit } from "@/lib/types";
 
-/**
- * One condensed filter row mixing the most useful kinds of filter: time, type, the game, progress,
- * and the two busiest topics. Single choice, one line.
- */
+/** A short filter row: just the questions visitors actually ask. Single choice, one line. */
 type Filter = { id: string; label: string; test: (x: Exhibit, ctx: { visited: Set<string>; hiding: (x: Exhibit) => boolean }) => boolean };
 const FILTERS: Filter[] = [
   { id: "all", label: "All", test: () => true },
-  { id: "quick", label: "≤ 15 min", test: (x) => x.minutes <= 15 },
-  { id: "hands-on", label: "Hands-on", test: (x) => x.type === "Hands-on" || x.type === "Lab" },
   { id: "domi", label: "Domi hiding", test: (x, c) => !x.closed && c.hiding(x) },
-  { id: "new", label: "Not explored", test: (x, c) => !c.visited.has(x.id) },
-  { id: "build", label: "Build & Play", test: (x) => x.topic === "Build & Play" },
-  { id: "ai", label: "AI & Digital", test: (x) => x.topic === "AI & Digital" },
+  { id: "new", label: "Not explored yet", test: (x, c) => !c.visited.has(x.id) },
+  { id: "hands-on", label: "Hands-on", test: (x) => x.type === "Hands-on" || x.type === "Lab" },
 ];
-
 export default function Explore() {
   const local = useLocal();
   const [q, setQ] = useState("");
@@ -103,9 +97,9 @@ export default function Explore() {
                   {group} <span className="text-navy/35">· {items.length}</span>
                 </h3>
               )}
-              <ul className="space-y-3 px-4 pt-2">
+              <ul className="grid gap-3 px-4 pt-2 md:grid-cols-2 lg:grid-cols-3">
                 {items.map((x) => (
-                  <li key={x.id}>
+                  <li key={x.id} className="min-w-0">
                     <Link href={`/exhibit/${x.id}`} className={`chunky flex items-center gap-3 rounded-[24px] bg-white p-3 ${x.closed ? "opacity-60 grayscale" : ""}`} style={{ ["--btn-edge" as string]: "#DCE3EA", borderRadius: 24 }}>
                       <ExhibitThumb exhibit={x} hidden={!x.closed && hiding(x)} />
                       <div className="min-w-0 flex-1">
@@ -115,13 +109,13 @@ export default function Explore() {
                         </p>
                         <p className="mt-1 truncate text-[14px] font-semibold text-navy/80">{x.blurb}</p>
                         {(x.closed || visited.has(x.id) || hiding(x)) && (
-                          <div className="mt-1.5 flex flex-wrap gap-1.5">
+                          <div className="mt-2.5 flex flex-wrap gap-2">
                             {x.closed ? (
-                              <span className="rounded-full bg-navy/10 px-2 py-0.5 text-[11px] font-black text-navy/70">Closed today</span>
+                              <span className="rounded-full bg-navy/10 px-2.5 py-1 text-[11px] font-black leading-none text-navy/70">Closed today</span>
                             ) : (
                               <>
-                                {visited.has(x.id) && <span className="rounded-full bg-green/15 px-2 py-0.5 text-[11px] font-black text-[#0E8840]">✓ Explored</span>}
-                                {hiding(x) && <span className="rounded-full bg-tangerine/15 px-2 py-0.5 text-[11px] font-black text-[#BF5508]">Domi hiding</span>}
+                                {visited.has(x.id) && <span className="rounded-full bg-green/15 px-2.5 py-1 text-[11px] font-black leading-none text-[#0E8840]">✓ Explored</span>}
+                                {hiding(x) && <span className="rounded-full bg-tangerine/15 px-2.5 py-1 text-[11px] font-black leading-none text-[#BF5508]">Domi hiding</span>}
                               </>
                             )}
                           </div>
@@ -156,31 +150,40 @@ function useHeight(ref: React.RefObject<HTMLElement | null>) {
   return h;
 }
 
-/** Seasonal and limited-time content (brief: "come back for something new"). */
+/**
+ * Events from data/events.ts. Admin side is copy-and-paste: title + dates. Long titles wrap to
+ * two lines, finished events drop off on their own, and the card works with or without a note.
+ */
 function HappeningNow() {
-  const items: { domi: Domi; live: boolean }[] = [
-    ...getActiveLimitedHunts().map((d) => ({ domi: d, live: true })),
-    ...getUpcomingHunts().map((d) => ({ domi: d, live: false })),
-  ].filter((v, i, a) => a.findIndex((w) => w.domi.theme === v.domi.theme) === i);
+  const today = now();
+  const day = (iso: string) => new Date(`${iso}T00:00:00`);
+  const items = EVENTS.map((e) => ({ ...e, from: day(e.start), to: new Date(`${e.end ?? e.start}T23:59:59`) }))
+    .filter((e) => e.to >= today)
+    .sort((a, b) => +a.from - +b.from);
   if (!items.length) return null;
+  const days = (ms: number) => Math.max(1, Math.ceil(ms / 86_400_000));
   return (
     <section className="mt-8">
       <h2 className="display px-5 text-[22px]">Happening at The Tech</h2>
-      <div className="scroll-x mt-3 flex gap-3 px-4 pb-2">
-        {items.map(({ domi, live }) => (
-          <div key={domi.theme} className={`w-[220px] shrink-0 rounded-[22px] p-4 ${live ? "bg-pink text-white shadow-[0_5px_0_#B5006A]" : "bg-white shadow-[0_4px_0_#DCE3EA]"}`}>
-            <span className={`inline-block rounded-full px-2.5 py-0.5 text-[11px] font-black ${live ? "bg-white text-pink" : "bg-gold text-navy"}`}>
-              {live ? `Ends in ${daysLeft(domi)} days` : `In ${daysUntil(domi)} days`}
-            </span>
-            <p className="display mt-2 text-[17px] leading-tight">{domi.theme}</p>
-            <p className={`mt-1 flex items-center gap-1 text-[13px] font-bold ${live ? "text-white/85" : "text-navy/60"}`}>
-              <CalendarIcon size={13} />
-              {domi.start_date && formatShort(domi.start_date)}
-              {domi.end_date && domi.start_date?.slice(0, 10) !== domi.end_date.slice(0, 10) ? ` – ${formatShort(domi.end_date)}` : ""}
-            </p>
-            <p className={`mt-1 text-[13px] font-semibold ${live ? "text-white/85" : "text-navy/60"}`}>Limited-time Domi to collect</p>
-          </div>
-        ))}
+      <div className="scroll-x mt-3 flex gap-3 px-4 pb-2 md:grid md:grid-cols-3 md:overflow-visible">
+        {items.map((e) => {
+          const live = e.from <= today;
+          const dates = `${formatShort(`${e.start}T12:00:00`)}${e.end && e.end !== e.start ? ` – ${formatShort(`${e.end}T12:00:00`)}` : ""}`;
+          return (
+            <div key={e.title + e.start} className={`flex w-[220px] shrink-0 flex-col rounded-[22px] p-4 md:w-auto ${live ? "bg-pink text-white shadow-[0_5px_0_#B5006A]" : "bg-white shadow-[0_4px_0_#DCE3EA]"}`}>
+              <span className={`w-fit rounded-full px-2.5 py-0.5 text-[11px] font-black ${live ? "bg-white text-pink" : "bg-gold text-navy"}`}>
+                {live ? (e.end && e.end !== e.start ? `Ends in ${days(+e.to - +today)} days` : "Today") : `In ${days(+e.from - +today)} days`}
+              </span>
+              <p className="display mt-2 line-clamp-2 text-[17px] leading-tight" title={e.title}>{e.title}</p>
+              <p className={`mt-1 flex items-center gap-1 text-[13px] font-bold ${live ? "text-white/85" : "text-navy/60"}`}>
+                <CalendarIcon size={13} /> {dates}
+              </p>
+              {(e.note || e.domi) && (
+                <p className={`mt-auto pt-1 text-[13px] font-semibold ${live ? "text-white/85" : "text-navy/60"}`}>{e.note ?? "Limited-time Domi to collect"}</p>
+              )}
+            </div>
+          );
+        })}
       </div>
     </section>
   );

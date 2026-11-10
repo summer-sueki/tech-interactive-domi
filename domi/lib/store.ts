@@ -73,7 +73,10 @@ function read(): LocalState {
   if (cache) return cache;
   try {
     const raw = localStorage.getItem(KEY);
-    cache = raw ? (JSON.parse(raw) as LocalState) : seed();
+    // Fill in anything missing so older or partial saves never crash the app.
+    const saved = raw ? (JSON.parse(raw) as Partial<LocalState>) : {};
+    const base = seed();
+    cache = { ...base, ...saved, guest: { ...base.guest, ...(saved.guest ?? {}) }, collection: saved.collection ?? [] };
   } catch {
     cache = seed();
   }

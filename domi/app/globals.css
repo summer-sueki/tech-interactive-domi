@@ -49,6 +49,10 @@ body { font-family: var(--font-sans); }
   background: var(--color-offwhite);
   box-shadow: 0 0 60px rgba(0, 0, 0, 0.25);
 }
+/* Tablet / desktop: the app widens; Explore and My Domis switch to multi-column layouts. */
+@media (min-width: 768px) {
+  .app-column { max-width: 1024px; }
+}
 
 .pt-safe { padding-top: max(env(safe-area-inset-top), 12px); }
 .pb-safe { padding-bottom: max(env(safe-area-inset-bottom), 8px); }

@@ -24,7 +24,7 @@ export default function HidingSections() {
       <p className="px-1 text-sm font-bold text-navy/60">{hiding.length} hiding at exhibits right now.</p>
       {(
         <>
-          <div className="mt-3 grid grid-cols-2 gap-3">
+          <div className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-4">
             {shown.map((d, i) => {
               const x = EXHIBITS.find((e) => e.domi_slug === d.slug);
               const card = (

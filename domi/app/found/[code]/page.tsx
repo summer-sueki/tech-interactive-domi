@@ -86,7 +86,7 @@ function Reveal({ domi, number, foundAt, via }: { domi: DomiData; number: number
       : via === "qr"
       ? [500, 1500, 2250, 2850, 3350] // floats up from the sign
       : [700, 1150, 1650, 2300, 2800]
-    ).map((ms, i) => setTimeout(() => { setStep(i + 1); if (i === 2) setPose(via === "nfc" ? "wave" : "land"); }, ms));
+    ).map((ms, i) => setTimeout(() => { setStep(i + 1); if (i === 2) setPose(via === "nfc" ? "idle" : "land"); }, ms));
     return () => { t.forEach(clearTimeout); clearTimeout(r); };
   }, [reduce, via]);
 
@@ -158,7 +158,8 @@ function Reveal({ domi, number, foundAt, via }: { domi: DomiData; number: number
       <div className="absolute inset-x-0 top-[34%] flex justify-center">
         {!via && <Portal open={step >= 0} />}
         <Confetti go={step >= 3 && !reduce} />
-        <div className="absolute top-[-130px]">
+        {/* Pinned to the exact centre of the screen; the float sways evenly around it */}
+        <div className="absolute left-1/2 top-[-130px] w-[170px] -translate-x-1/2">
           {step >= 1 && !reduce && !via && <Trail domi={domi} />}
           {step >= 1 && !reduce && via === "qr" && <Rise from={40} />}
           {via === "nfc" ? (
@@ -171,7 +172,7 @@ function Reveal({ domi, number, foundAt, via }: { domi: DomiData; number: number
               animate={
                 step < 1 ? {}
                 : !released ? { y: "-20vh", scaleX: 0.62, scaleY: 1.75 }
-                : { y: 34, scaleX: 1, scaleY: 1 }
+                : { y: 56, scaleX: 1, scaleY: 1 }
               }
               transition={
                 !released
@@ -180,10 +181,16 @@ function Reveal({ domi, number, foundAt, via }: { domi: DomiData; number: number
               }
             >
               <motion.div
-                animate={released && !reduce ? { y: [0, -16, 0, 10, 0], x: [0, 9, 0, -9, 0], rotate: [-3, 4, -2, -4, -3] } : {}}
+                className="relative"
+                animate={released && !reduce ? { y: [0, -14, 0, 10, 0], x: [0, 5, 0, -5, 0], rotate: [0, 2.5, 0, -2.5, 0] } : {}}
                 transition={{ duration: 6, repeat: Infinity, ease: "easeInOut", delay: 0.6 }}
               >
-                <Domi domi={domi} size={170} pose={pose} glow={released} shadow={false} />
+                {/* Soft halo centred behind it, so it reads as floating in the middle of space */}
+                <motion.span
+                  className="pointer-events-none absolute left-1/2 top-1/2 h-[260px] w-[260px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[radial-gradient(circle,_rgba(159,230,255,.45)_0%,_rgba(159,230,255,0)_65%)]"
+                  initial={{ opacity: 0 }} animate={{ opacity: released ? 1 : 0 }} transition={{ duration: 0.6 }} aria-hidden
+                />
+                <div className="relative flex justify-center"><Domi domi={domi} size={170} pose={pose} glow={released} shadow={false} /></div>
               </motion.div>
             </motion.div>
           ) : (

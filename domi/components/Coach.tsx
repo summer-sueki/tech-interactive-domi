@@ -7,7 +7,7 @@ import { getDomiBySlug } from "@/lib/data";
 export const COACH_STEPS = [
   { target: "coach-field", title: "These are your Domis!", body: "Tap one to say hi." },
   { target: "coach-found", title: "Explore to find more", body: "Look for the Domi sign at exhibits." },
-  { target: "coach-found", title: "Found one?", body: "Tap the button, then tap the sign." },
+  { target: "coach-found", title: "Found one?", body: "Tap Find at the bottom, then tap the sign." },
 ];
 
 export default function Coach({ step, onNext, onSkip }: { step: number | null; onNext: () => void; onSkip: () => void }) {

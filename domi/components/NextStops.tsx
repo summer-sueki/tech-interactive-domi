@@ -1,46 +1,35 @@
 "use client";
-/** "Find your next stop" (project brief): 3 exhibit suggestions, each with one short reason. */
+/**
+ * "Find your next stop" (project brief). The whole section is one callout, so the three picks read
+ * as equal suggestions rather than one exhibit that looks auto-selected. Each has one short reason.
+ */
 import { AnimatePresence, motion } from "framer-motion";
 import Link from "next/link";
 import ExhibitThumb from "./ExhibitThumb";
-import { PinIcon } from "./Icons";
+import { ChevronRight, PinIcon } from "./Icons";
 import { recommend } from "@/lib/recommend";
-import { update, useLocal } from "@/lib/store";
-import type { VisitTime } from "@/lib/types";
-
-const TIMES: [VisitTime, string][] = [[15, "15 min"], [30, "30 min"], [60, "1 hr+"]];
+import { useLocal } from "@/lib/store";
 
 export default function NextStops() {
   const local = useLocal();
-  const time = local?.visitTime ?? null;
   // Wait for on-device progress before ranking, so the list never flashes "nothing explored" picks.
-  const recs = local ? recommend(local.collection, time, 3, local.checkins ?? []) : [];
-  const setTime = (t: VisitTime) => update((s) => ({ ...s, visitTime: s.visitTime === t ? null : t }));
+  const recs = local ? recommend(local.collection, null, 3, local.checkins ?? []) : [];
 
   return (
-    <section id="next" className="relative mt-6 scroll-mt-[150px] px-4">
-      <div className="px-1">
-        <h2 className="display text-[22px]">Your next stops</h2>
+    <section id="next" className="relative mx-4 mt-6 scroll-mt-[150px]">
+      <div className="flex items-end justify-between px-1">
+        <div>
+          <h2 className="display text-[22px] leading-tight">Your next stops</h2>
+          <p className="text-[13px] font-bold text-navy/60">Picked for you. Choose any!</p>
+        </div>
       </div>
 
-      <div className="mt-3 flex items-center gap-2 px-1" role="group" aria-label="How much time do you have?">
-        <span className="mr-1 text-sm font-extrabold text-navy/70">Time left</span>
-        {TIMES.map(([t, label]) => (
-          <button
-            key={t}
-            onClick={() => setTime(t)}
-            aria-pressed={time === t}
-            className={`h-11 flex-1 rounded-full text-[15px] font-black transition-colors ${time === t ? "bg-purple text-white" : "bg-white text-navy/70 shadow-[0_3px_0_rgba(0,0,0,.08)]"}`}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
-
-      <ol className="mt-4 space-y-3">
+      {/* One callout card holding all three picks as equal rows */}
+      <ol className="mt-3 grid overflow-hidden rounded-[26px] bg-white shadow-[0_5px_0_#B9DDF1] ring-[3px] ring-[#8ED0F2] md:grid-cols-3 md:divide-x-2 md:divide-y-0 divide-y-2 divide-offwhite">
         <AnimatePresence initial={false} mode="popLayout">
-          {recs.map((r, i) => (
+          {recs.map((r) => (
             <motion.li
+              className="min-w-0"
               key={r.exhibit.id}
               layout
               initial={{ opacity: 0, y: 12 }}
@@ -48,26 +37,22 @@ export default function NextStops() {
               exit={{ opacity: 0, scale: 0.95 }}
               transition={{ type: "spring", stiffness: 400, damping: 30 }}
             >
-              <Link
-                href={`/exhibit/${r.exhibit.id}`}
-                className={`chunky flex items-center gap-3 rounded-[24px] bg-white p-3.5 ${i === 0 ? "border-[3px] border-tangerine" : ""}`}
-                style={{ ["--btn-edge" as string]: i === 0 ? "#C4621A" : "#DCE3EA", borderRadius: 24 }}
-              >
-              <ExhibitThumb exhibit={r.exhibit} hidden={r.hidesDomi} />
-              <div className="min-w-0 flex-1">
-                {i === 0 && <p className="text-[11px] font-black uppercase tracking-[0.14em] text-tangerine">Top pick</p>}
-                <p className="display text-[18px] leading-tight">{r.exhibit.name}</p>
-                <p className="mt-0.5 flex items-center gap-1 text-[13px] font-bold text-navy/60">
-                  <PinIcon size={13} /> {r.exhibit.location}
-                </p>
-                <p className="mt-1 truncate text-[14px] font-black text-purple">{r.reason}</p>
-              </div>
+              <Link href={`/exhibit/${r.exhibit.id}`} className="flex items-center gap-3 p-3 transition-colors active:bg-offwhite">
+                <ExhibitThumb exhibit={r.exhibit} hidden={r.hidesDomi} />
+                <div className="min-w-0 flex-1">
+                  <p className="display text-[18px] leading-tight">{r.exhibit.name}</p>
+                  <p className="mt-0.5 flex items-center gap-1 text-[13px] font-bold text-navy/60">
+                    <PinIcon size={13} /> {r.exhibit.location}
+                  </p>
+                  <p className="mt-1 truncate text-[14px] font-black text-cobalt">{r.reason}</p>
+                </div>
+                <ChevronRight size={18} className="shrink-0 text-navy/25" />
               </Link>
             </motion.li>
           ))}
         </AnimatePresence>
         {local && recs.length === 0 && (
-          <li className="rounded-[24px] bg-white p-4 text-center font-bold text-navy/60">Nothing fits. Try more time.</li>
+          <li className="p-4 text-center font-bold text-navy/60">You&apos;ve seen it all. Amazing!</li>
         )}
       </ol>
     </section>

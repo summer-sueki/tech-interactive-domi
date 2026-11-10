@@ -1,7 +1,7 @@
 "use client";
 import { animate, motion, useMotionValue, useReducedMotionConfig, useTransform, type AnimationPlaybackControls } from "framer-motion";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import Domi, { type Pose } from "@/components/Domi";
 import Bubble from "@/components/Bubble";
@@ -12,6 +12,7 @@ import ProgressCard from "@/components/ProgressCard";
 import FoundCard from "@/components/FoundCard";
 import HidingSections from "@/components/HidingSections";
 import CollectSheet from "@/components/CollectSheet";
+import DomiModal from "@/components/DomiModal";
 import Coach, { COACH_STEPS } from "@/components/Coach";
 import { Clouds, DomeSkyline, Flower, Tree } from "@/components/Scenery";
 import { GridIcon } from "@/components/Icons";
@@ -33,6 +34,7 @@ function MyDomis() {
   const [grid, setGrid] = useState(false);
   const [collect, setCollect] = useState(false);
   const [coach, setCoach] = useState<number | null>(null);
+  const [memory, setMemory] = useState<string | null>(null);
   // First visit: walk through the page once.
   useEffect(() => {
     if (local && !local.coachSeen && coach === null) setCoach(0);
@@ -45,8 +47,13 @@ function MyDomis() {
   const endCoach = () => { setCoach(null); update((s) => ({ ...s, coachSeen: true })); };
   const ring = (id: string) => (coach !== null && COACH_STEPS[coach].target === id ? "ring-4 ring-gold ring-offset-2 ring-offset-offwhite" : "");
   const scroller = useRef<HTMLDivElement>(null);
+  const page = useRef<HTMLDivElement>(null);
   // h starts at 0 so no Domi is placed until the field is measured (otherwise they start below the grass).
   const [view, setView] = useState({ w: 390, h: 0 });
+  const [pan, setPan] = useState({ at: 0, active: false });
+  // True once the sheet has snapped all the way up (it then owns the screen and shows its own header buttons).
+  const [atTop, setAtTop] = useState(false);
+  const panTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const positions = useRef(new Map<string, { x: number; y: number; name: string }>());
 
   const all = getDomis();
@@ -59,18 +66,47 @@ function MyDomis() {
 
   useLayoutEffect(() => {
     const el = scroller.current;
-    if (!el) return;
-    const measure = () => setView({ w: el.clientWidth, h: el.clientHeight });
+    const pg = page.current;
+    if (!el || !pg) return;
+    const measure = () => setView({ w: el.clientWidth, h: pg.clientHeight });
     measure();
     const ro = new ResizeObserver(measure);
     ro.observe(el);
+    ro.observe(pg);
     return () => ro.disconnect();
   }, []);
 
   // Scroll sideways when there are many Domis so it never feels crowded.
   const worldW = Math.max(view.w, Math.ceil(found.length / 5) * view.w * 0.9);
-  // Keep Domis on the visible grass: the Found a Domi card overlaps the bottom ~28px of the field.
-  const band = { top: view.h * 0.5, bottom: view.h - 64 };
+  // The field stays fixed behind the page. The content sheet rests at `rest`, scrolls up over the field,
+  // and can be pulled down to `low`, leaving just its top edge above the tab bar so the whole field shows.
+  const rest = Math.round(Math.min(Math.max(view.h * 0.56, 380), 560));
+  const low = Math.max(rest, view.h - 210);
+  // Domis roam the grass that's visible while the sheet rests.
+  const band = { top: rest * 0.53, bottom: rest - 40 };
+  const scrollable = worldW > view.w + 4;
+
+  // Three set positions (CSS scroll snap): pulled down (scrollTop 0), resting, and all the way up.
+  // Once all the way up, the sheet is taller than the screen, so its content scrolls freely.
+  const upAt = low - 28;
+  // Open with the sheet at its resting spot (the space above it lets you pull it down).
+  // Snapping only switches on after that, so the browser can't snap to a spot from before the page was measured.
+  const placed = useRef(false);
+  const [snap, setSnap] = useState(false);
+  useLayoutEffect(() => {
+    if (placed.current || !view.h || !page.current) return;
+    const el = page.current;
+    el.scrollTop = low - rest;
+    placed.current = true;
+    requestAnimationFrame(() => { el.scrollTop = low - rest; setSnap(true); });
+  }, [view.h, low, rest]);
+
+  const onPan = (el: HTMLDivElement) => {
+    const max = el.scrollWidth - el.clientWidth;
+    setPan({ at: max > 0 ? el.scrollLeft / max : 0, active: true });
+    clearTimeout(panTimer.current);
+    panTimer.current = setTimeout(() => setPan((p) => ({ ...p, active: false })), 1100);
+  };
 
   useEffect(() => {
     if (!newSlug || !scroller.current) return;
@@ -80,28 +116,21 @@ function MyDomis() {
 
   return (
     <main className="relative h-dvh overflow-hidden bg-offwhite">
-      <div className="pb-tabbar h-full overflow-y-auto">
-        {/* Settings + grid buttons stay pinned to the top while you scroll (zero-height sticky bar) */}
-        <div className="pointer-events-none sticky top-0 z-40 h-0">
-          <div className="pt-safe flex justify-end gap-2 px-4">
-            <div className="pointer-events-auto flex items-center gap-2">
-              <LoginButton />
-              <button
-                onClick={() => setGrid(true)}
-                className="chunky grid h-12 w-12 place-items-center bg-white text-purple"
-                style={{ ["--btn-edge" as string]: "#EBD3F2", borderRadius: 16 }}
-                aria-label="Open collection grid"
-              >
-                <GridIcon />
-              </button>
-            </div>
+      <div
+        ref={page}
+        className={`pb-tabbar h-full overflow-y-auto overscroll-contain ${snap ? "snap-y snap-mandatory" : ""}`}
+        onScroll={(e) => setAtTop(e.currentTarget.scrollTop >= upAt - 2)}
+      >
+        {/* Living field: fixed in place while the page scrolls over it */}
+        <section id="coach-field" className={`sticky top-0 overflow-hidden bg-[#7FCF5A] ${ring("coach-field")}`} style={{ height: view.h || "100dvh" }}>
+          {/* Sign in / settings + grid: part of the field (they stay with it and get covered when the sheet comes up) */}
+          <div className="pt-safe absolute right-0 top-0 z-20 flex items-center gap-2 px-4">
+            <LoginButton />
+            <GridButton onClick={() => setGrid(true)} />
           </div>
-        </div>
-        {/* Living field (hero) */}
-        <section id="coach-field" className={`relative h-[470px] overflow-hidden bg-[#8ED6F7] ${ring("coach-field")}`}>
-          <div ref={scroller} className="scroll-x absolute inset-0 isolate overflow-y-hidden">
+          <div ref={scroller} onScroll={(e) => onPan(e.currentTarget)} className="scroll-x absolute inset-0 isolate overflow-y-hidden">
             <div className="relative h-full" style={{ width: worldW }}>
-              <World width={worldW} height={view.h} />
+              <World width={worldW} height={view.h} rest={rest} />
               {view.h > 0 &&
                 found.map((d, i) => (
                   <Wanderer
@@ -112,33 +141,76 @@ function MyDomis() {
                     bounds={{ left: 50, right: worldW - 50, top: band.top, bottom: band.bottom }}
                     isNew={d.slug === newSlug}
                     positions={positions.current}
+                    onOpen={() => setMemory(d.slug)}
                   />
                 ))}
               {found.length === 0 && (
-                <div className="absolute inset-x-0 top-[38%] px-10 text-center">
+                <div className="absolute inset-x-0 px-10 text-center" style={{ top: rest * 0.38 }}>
                   <p className="display text-2xl text-white drop-shadow">Your field is empty.</p>
-                  <p className="mt-1 font-black text-navy/70">Find your first Domi below!</p>
+                  <p className="mt-1 font-black text-navy/70">Tap Find to collect your first one!</p>
                 </div>
               )}
             </div>
           </div>
-
         </section>
 
-        <div className="relative z-10 -mt-7 space-y-5 rounded-t-[32px] bg-offwhite pt-5">
-          <div id="coach-found" className={`mx-4 rounded-[28px] ${ring("coach-found")}`}>
-            <FoundCard onFound={() => setCollect(true)} onHelp={() => setCoach(0)} />
+        {/* Content sheet: overlaps the field. The see-through space above it passes touches to the field. */}
+        <div className="pointer-events-none relative z-10" style={{ marginTop: -(view.h || 0) }}>
+          {/* Snap points: pulled down, resting. (The sheet itself is the third: all the way up.) */}
+          <div className="absolute inset-x-0 top-0 h-px snap-start" aria-hidden />
+          <div className="absolute inset-x-0 h-px snap-start" style={{ top: low - rest }} aria-hidden />
+          <div style={{ height: upAt }} />
+          <div
+            className={`pointer-events-auto relative snap-start bg-offwhite shadow-[0_-8px_24px_-12px_rgba(0,40,80,.35)] transition-[border-radius] duration-200 ${atTop ? "rounded-none" : "rounded-t-[32px]"}`}
+            style={{ minHeight: view.h ? view.h + 1 : undefined }}
+          >
+            {/* Sheet header: built into the page. Once the sheet is all the way up it pins to the top with the buttons. */}
+            <div className={`sticky top-0 z-20 flex items-center justify-between gap-3 bg-offwhite px-5 pb-2 transition-[padding] duration-200 ${atTop ? "pt-safe shadow-[0_6px_12px_-10px_rgba(0,40,80,.35)]" : "rounded-t-[32px] pt-4"}`}>
+              <h1 className="display text-[22px] leading-none">My Domis <span className="text-[15px] font-black text-navy/45">{found.length}</span></h1>
+              <div className={`flex items-center gap-2 transition-opacity duration-200 ${atTop ? "opacity-100" : "pointer-events-none opacity-0"}`} aria-hidden={!atTop}>
+                <LoginButton />
+                <GridButton onClick={() => setGrid(true)} />
+              </div>
+            </div>
+            {/* Sideways scroll indicator for the field, sitting on the sheet's top edge */}
+            {scrollable && (
+              <div className={`pointer-events-none absolute -top-5 left-1/2 h-1.5 w-20 -translate-x-1/2 rounded-full bg-black/15 transition-opacity duration-300 ${pan.active ? "opacity-100" : "opacity-60"}`} aria-hidden>
+                <span
+                  className="absolute top-0 h-full rounded-full bg-white shadow-[0_1px_2px_rgba(0,0,0,.25)]"
+                  style={{ width: `${Math.max(18, (view.w / worldW) * 100)}%`, left: `${pan.at * (100 - Math.max(18, (view.w / worldW) * 100))}%` }}
+                />
+              </div>
+            )}
+            <div className="space-y-5 pt-2">
+              <div id="coach-found" className={`mx-4 rounded-[28px] ${ring("coach-found")}`}>
+                <FoundCard onFound={() => setCollect(true)} onHelp={() => setCoach(0)} />
+              </div>
+              <ProgressCard />
+            </div>
+            <HidingSections />
           </div>
-          <ProgressCard />
         </div>
-        <HidingSections />
       </div>
 
       <TabBar />
-      <GridSheet open={grid} onClose={() => setGrid(false)} />
+      <GridSheet open={grid} onClose={() => setGrid(false)} onOpen={setMemory} />
       <CollectSheet open={collect} onClose={() => setCollect(false)} domi={nextToCollect} />
+      <DomiModal slug={memory} onClose={() => setMemory(null)} />
       <Coach step={coach} onNext={() => (coach !== null && coach < COACH_STEPS.length - 1 ? setCoach(coach + 1) : endCoach())} onSkip={endCoach} />
     </main>
+  );
+}
+
+function GridButton({ onClick, small }: { onClick: () => void; small?: boolean }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`chunky grid place-items-center bg-white text-purple ${small ? "h-10 w-10" : "h-12 w-12"}`}
+      style={{ ["--btn-edge" as string]: "#EBD3F2", borderRadius: small ? 14 : 16 }}
+      aria-label="Open collection grid"
+    >
+      <GridIcon size={small ? 20 : 24} />
+    </button>
   );
 }
 
@@ -149,8 +221,9 @@ function startX(i: number, n: number, w: number) {
 
 /* ───────────── Background world ───────────── */
 
-function World({ width, height }: { width: number; height: number }) {
-  const ground = height * 0.42;
+function World({ width, height, rest }: { width: number; height: number; rest: number }) {
+  // Sky and path are laid out for the area above the resting sheet; the grass runs on below it.
+  const ground = rest * 0.42;
   const trees = Math.max(2, Math.round(width / 180));
   return (
     <div className="pointer-events-none absolute inset-0" aria-hidden>
@@ -162,7 +235,7 @@ function World({ width, height }: { width: number; height: number }) {
       <svg className="absolute left-0" style={{ top: ground - 30 }} width={width} height={height - ground + 30} viewBox={`0 0 ${width} ${height - ground + 30}`} preserveAspectRatio="none">
         <path d={hillPath(width, 40, 30)} fill="#A8E07E" />
         <rect y="40" width={width} height={height} fill="#7FCF5A" />
-        <path d={`M -20 ${height * 0.42} C ${width * 0.25} ${height * 0.25}, ${width * 0.5} ${height * 0.5}, ${width * 0.75} ${height * 0.33} S ${width + 40} ${height * 0.4}, ${width + 40} ${height * 0.4}`} stroke="#F1E0B0" strokeWidth="34" fill="none" strokeLinecap="round" />
+        <path d={`M -20 ${rest * 0.42} C ${width * 0.25} ${rest * 0.25}, ${width * 0.5} ${rest * 0.5}, ${width * 0.75} ${rest * 0.33} S ${width + 40} ${rest * 0.4}, ${width + 40} ${rest * 0.4}`} stroke="#F1E0B0" strokeWidth="34" fill="none" strokeLinecap="round" />
       </svg>
       {Array.from({ length: trees }).map((_, i) => (
         <div key={i} className="absolute" style={{ left: (i + 0.3) * (width / trees), top: ground - 50 + (i % 2) * 10 }}>
@@ -170,7 +243,7 @@ function World({ width, height }: { width: number; height: number }) {
         </div>
       ))}
       {Array.from({ length: Math.round(width / 50) }).map((_, i) => (
-        <div key={i} className="absolute" style={{ left: (i * 97) % width, top: ground + 40 + ((i * 131) % (height - ground - 170)) }}>
+        <div key={i} className="absolute" style={{ left: (i * 97) % width, top: ground + 40 + ((i * 131) % Math.max(1, height - ground - 170)) }}>
           <Flower size={12 + (i % 3) * 3} color={["#ED0289", "#FED602", "#fff", "#F58932"][i % 4]} />
         </div>
       ))}
@@ -194,10 +267,10 @@ interface WandererProps {
   bounds: { left: number; right: number; top: number; bottom: number };
   isNew: boolean;
   positions: Map<string, { x: number; y: number; name: string }>;
+  onOpen: () => void;
 }
 
-function Wanderer({ domi, index, start, bounds, isNew, positions }: WandererProps) {
-  const router = useRouter();
+function Wanderer({ domi, index, start, bounds, isNew, positions, onOpen }: WandererProps) {
   const reduce = useReducedMotionConfig();
   const x = useMotionValue(start.x);
   const y = useMotionValue(start.y);
@@ -277,7 +350,8 @@ function Wanderer({ domi, index, start, bounds, isNew, positions }: WandererProp
   const onTap = () => {
     if (justDragged.current) return;
     if (bubble === domi.name) {
-      router.push(`/domi/${domi.slug}`);
+      setBubble(null);
+      onOpen();
       return;
     }
     showBubble(domi.name, 3000);
@@ -369,7 +443,7 @@ function clamp(v: number, a: number, b: number) {
 
 const FILTERS = ["All", "Events", "Exhibits", "Limited"] as const;
 
-function GridSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
+function GridSheet({ open, onClose, onOpen }: { open: boolean; onClose: () => void; onOpen: (slug: string) => void }) {
   const local = useLocal();
   const [filter, setFilter] = useState<(typeof FILTERS)[number]>("All");
   const collection = local?.collection ?? [];
@@ -377,7 +451,7 @@ function GridSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
     filter === "All" ? true : filter === "Events" ? d.unlock_type === "event" : filter === "Exhibits" ? d.unlock_type === "exhibit" : d.end_date !== null,
   );
   return (
-    <Sheet open={open} onClose={onClose} title="All Domis" tall>
+    <Sheet open={open} onClose={onClose} title="All Domis" expandable>
       <div className="scroll-x -mx-5 mb-3 flex shrink-0 gap-2 px-5">
         {FILTERS.map((f) => (
           <button
@@ -391,15 +465,15 @@ function GridSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
         ))}
       </div>
       <div className="-mx-5 flex-1 overflow-y-auto px-5 pb-6">
-        <div className="grid grid-cols-3 gap-3">
-          {list.map((d) => <Tile key={d.id} domi={d} status={statusOf(d, collection)} />)}
+        <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-5">
+          {list.map((d) => <Tile key={d.id} domi={d} status={statusOf(d, collection)} onOpen={() => onOpen(d.slug)} />)}
         </div>
       </div>
     </Sheet>
   );
 }
 
-function Tile({ domi, status }: { domi: DomiData; status: DomiStatus }) {
+function Tile({ domi, status, onOpen }: { domi: DomiData; status: DomiStatus; onOpen: () => void }) {
   const owned = status === "found" || status === "new";
   const inner = (
     <div className={`relative flex h-full flex-col items-center rounded-[20px] p-2 pb-2.5 text-center ${owned ? "bg-[#E8F6DF]" : status === "missed" ? "bg-offwhite opacity-55" : "bg-offwhite"}`}>
@@ -417,7 +491,7 @@ function Tile({ domi, status }: { domi: DomiData; status: DomiStatus }) {
       {!owned && status !== "missed" && <p className="mt-0.5 text-[11px] font-bold leading-tight text-navy/60">{domi.location_hint}</p>}
     </div>
   );
-  if (owned) return <Link href={`/domi/${domi.slug}`}>{inner}</Link>;
+  if (owned) return <button onClick={onOpen} className="block w-full text-left" aria-label={`${domi.name} memory`}>{inner}</button>;
   // Still hiding at an exhibit? Jump to it (the game points you back to exploring).
   const exhibit = EXHIBITS.find((x) => x.domi_slug === domi.slug);
   return exhibit && status !== "missed" && status !== "upcoming" ? <Link href={`/exhibit/${exhibit.id}`}>{inner}</Link> : inner;
