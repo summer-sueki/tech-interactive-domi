@@ -16,7 +16,9 @@ import { CloseIcon, NfcIcon, QrIcon } from "./Icons";
 import { codeFor } from "@/lib/data";
 import type { Domi } from "@/lib/types";
 
-const SHOW_DEV = process.env.NODE_ENV !== "production" || process.env.NEXT_PUBLIC_SHOW_DEV === "1";
+// Prototype: the DEV "simulate a tap / scan" buttons show everywhere, including the live demo, so people can
+// try the flow without a real sign. For a real launch, set NEXT_PUBLIC_SHOW_DEV=0 in Vercel to hide them.
+const SHOW_DEV = process.env.NEXT_PUBLIC_SHOW_DEV !== "0";
 type Mode = "choose" | "nfc" | "qr";
 
 export default function CollectSheet({ open, onClose, domi }: { open: boolean; onClose: () => void; domi?: Domi; where?: string }) {

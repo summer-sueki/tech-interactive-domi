@@ -19,7 +19,7 @@ To pin the date (so countdowns always read the same): `NEXT_PUBLIC_MOCK_TODAY=20
 
 ## Showing the client
 
-**Live app:** just open the app (the old `/demo` link redirects to it). It starts as a first-time visitor. On a deployed build, set `NEXT_PUBLIC_SHOW_DEV=1` so the "Simulate a tap / scan" buttons are available for collecting Domis without a real tag.
+**Live app:** just open the app (the old `/demo` link redirects to it). It starts as a first-time visitor. The "DEV: Simulate a tap / scan" buttons show on every build (including Vercel) so people can collect Domis without a real tag. To hide them for a real launch, set `NEXT_PUBLIC_SHOW_DEV=0` in Vercel.
 
 **Figma (clickable):** open the "v4 · … (live, clickable prototype)" section, press Play, and choose the flow *1 · First-time visitor* or *2 · Returning visitor*.
 
