@@ -52,7 +52,7 @@ function Save() {
   }
 
   return (
-    <main className="relative flex min-h-dvh flex-col overflow-clip bg-gradient-to-b from-purple to-[#B35BCB] text-white md:px-[max(0px,calc(50%-300px))]">
+    <main className="relative flex min-h-dvh flex-col overflow-clip bg-gradient-to-b from-purple to-[#B35BCB] text-white @3xl:px-[max(0px,calc(50%-300px))]">
       <Clouds count={2} top={330} spread={90} />
       <Sparkles count={8} color="#FED602" seed={11} />
 

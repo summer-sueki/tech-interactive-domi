@@ -25,7 +25,7 @@ export default function NextStops() {
       </div>
 
       {/* One callout card holding all three picks as equal rows */}
-      <ol className="mt-3 grid overflow-hidden rounded-[26px] bg-white shadow-[0_5px_0_#B9DDF1] ring-[3px] ring-[#8ED0F2] md:grid-cols-3 md:divide-x-2 md:divide-y-0 divide-y-2 divide-offwhite">
+      <ol className="mt-3 grid overflow-hidden rounded-[26px] bg-white shadow-[0_5px_0_#B9DDF1] ring-[3px] ring-[#8ED0F2] @3xl:grid-cols-3 @3xl:divide-x-2 @3xl:divide-y-0 divide-y-2 divide-offwhite">
         <AnimatePresence initial={false} mode="popLayout">
           {recs.map((r) => (
             <motion.li

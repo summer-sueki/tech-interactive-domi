@@ -49,7 +49,7 @@ function SettingsScreen() {
 
   return (
     <main className="relative h-dvh overflow-hidden bg-offwhite">
-      <div className="h-full overflow-y-auto pb-10 md:px-[max(0px,calc(50%-340px))]">
+      <div className="h-full overflow-y-auto pb-10 @3xl:px-[max(0px,calc(50%-340px))]">
         <header className="pt-safe flex items-center gap-3 bg-gradient-to-b from-[#3FB2EC] to-[#7FCDF3] px-4 pb-5">
           <button onClick={() => router.push(back)} aria-label="Back" className="grid h-12 w-12 place-items-center rounded-full bg-white/90 text-navy shadow-[0_3px_0_rgba(0,0,0,.12)]">
             <BackIcon />

@@ -38,7 +38,8 @@ html, body {
 }
 body { font-family: var(--font-sans); }
 
-/* App column: phone-width, centered on larger screens. */
+/* App column: phone-width, centered on larger screens.
+   It is a size container, so layouts respond to the app's own width (@3xl: etc.), not the window's. */
 .app-column {
   position: relative;
   margin: 0 auto;
@@ -48,10 +49,14 @@ body { font-family: var(--font-sans); }
   overflow: hidden;
   background: var(--color-offwhite);
   box-shadow: 0 0 60px rgba(0, 0, 0, 0.25);
+  container-type: inline-size;
+  transition: max-width 0.35s ease;
 }
-/* Tablet / desktop: the app widens; Explore and My Domis switch to multi-column layouts. */
+/* Laptop / desktop viewers: a preview-size switch (components/FrameSwitch) picks the width. Phone by default. */
 @media (min-width: 768px) {
-  .app-column { max-width: 1024px; }
+  .app-column { max-width: 390px; }
+  html[data-frame="tablet"] .app-column { max-width: 834px; }
+  html[data-frame="full"] .app-column { max-width: 100%; box-shadow: none; }
 }
 
 .pt-safe { padding-top: max(env(safe-area-inset-top), 12px); }

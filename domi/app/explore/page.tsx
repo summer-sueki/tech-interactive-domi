@@ -97,7 +97,7 @@ export default function Explore() {
                   {group} <span className="text-navy/35">· {items.length}</span>
                 </h3>
               )}
-              <ul className="grid gap-3 px-4 pt-2 md:grid-cols-2 lg:grid-cols-3">
+              <ul className="grid gap-3 px-4 pt-2 @3xl:grid-cols-2 @5xl:grid-cols-3">
                 {items.map((x) => (
                   <li key={x.id} className="min-w-0">
                     <Link href={`/exhibit/${x.id}`} className={`chunky flex items-center gap-3 rounded-[24px] bg-white p-3 ${x.closed ? "opacity-60 grayscale" : ""}`} style={{ ["--btn-edge" as string]: "#DCE3EA", borderRadius: 24 }}>
@@ -165,12 +165,12 @@ function HappeningNow() {
   return (
     <section className="mt-8">
       <h2 className="display px-5 text-[22px]">Happening at The Tech</h2>
-      <div className="scroll-x mt-3 flex gap-3 px-4 pb-2 md:grid md:grid-cols-3 md:overflow-visible">
+      <div className="scroll-x mt-3 flex gap-3 px-4 pb-2 @3xl:grid @3xl:grid-cols-3 @3xl:overflow-visible">
         {items.map((e) => {
           const live = e.from <= today;
           const dates = `${formatShort(`${e.start}T12:00:00`)}${e.end && e.end !== e.start ? ` – ${formatShort(`${e.end}T12:00:00`)}` : ""}`;
           return (
-            <div key={e.title + e.start} className={`flex w-[220px] shrink-0 flex-col rounded-[22px] p-4 md:w-auto ${live ? "bg-pink text-white shadow-[0_5px_0_#B5006A]" : "bg-white shadow-[0_4px_0_#DCE3EA]"}`}>
+            <div key={e.title + e.start} className={`flex w-[220px] shrink-0 flex-col rounded-[22px] p-4 @3xl:w-auto ${live ? "bg-pink text-white shadow-[0_5px_0_#B5006A]" : "bg-white shadow-[0_4px_0_#DCE3EA]"}`}>
               <span className={`w-fit rounded-full px-2.5 py-0.5 text-[11px] font-black ${live ? "bg-white text-pink" : "bg-gold text-navy"}`}>
                 {live ? (e.end && e.end !== e.start ? `Ends in ${days(+e.to - +today)} days` : "Today") : `In ${days(+e.from - +today)} days`}
               </span>

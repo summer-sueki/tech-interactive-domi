@@ -61,7 +61,7 @@ export default function ExhibitDetail() {
           {x.closed && <span className="absolute bottom-10 left-4 rounded-full bg-navy px-3 py-1 text-[13px] font-black text-white">Closed today</span>}
         </section>
 
-        <section className="relative z-10 -mt-6 rounded-t-[32px] bg-offwhite px-5 pt-5 md:px-[max(20px,calc(50%-320px))]">
+        <section className="relative z-10 -mt-6 rounded-t-[32px] bg-offwhite px-5 pt-5 @3xl:px-[max(20px,calc(50%-320px))]">
           <div className="flex flex-wrap gap-1.5">
             {[x.topic, x.location, x.ages ? (x.ages === "All ages" ? x.ages : `Ages ${x.ages}`) : null, `~${x.minutes} min`, x.type].filter(Boolean).map((t) => (
               <span key={t} className="rounded-full bg-white px-3 py-1 text-[13px] font-black text-navy/70 shadow-[0_2px_0_rgba(0,0,0,.05)]">{t}</span>
@@ -99,7 +99,7 @@ export default function ExhibitDetail() {
       </div>
 
       {/* Check-in bar */}
-      <div className="pb-safe absolute inset-x-0 bottom-0 z-20 border-t-2 border-black/5 bg-white/95 px-5 pt-3 backdrop-blur md:px-[max(20px,calc(50%-320px))]">
+      <div className="pb-safe absolute inset-x-0 bottom-0 z-20 border-t-2 border-black/5 bg-white/95 px-5 pt-3 backdrop-blur @3xl:px-[max(20px,calc(50%-320px))]">
         {x.closed ? (
           <p className="pb-4 pt-1 text-center font-black text-navy/60">Closed today. Check back soon!</p>
         ) : visit ? (

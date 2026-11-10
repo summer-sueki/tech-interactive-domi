@@ -465,7 +465,7 @@ function GridSheet({ open, onClose, onOpen }: { open: boolean; onClose: () => vo
         ))}
       </div>
       <div className="-mx-5 flex-1 overflow-y-auto px-5 pb-6">
-        <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-5">
+        <div className="grid grid-cols-3 gap-3 @2xl:grid-cols-4 @3xl:grid-cols-5">
           {list.map((d) => <Tile key={d.id} domi={d} status={statusOf(d, collection)} onOpen={() => onOpen(d.slug)} />)}
         </div>
       </div>
