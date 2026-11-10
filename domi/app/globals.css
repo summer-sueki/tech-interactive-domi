@@ -1,0 +1,145 @@
+@import "tailwindcss";
+
+/* Brand tokens from the FQ26 Figma design system (Colors - Primary). */
+@theme {
+  --color-tangerine: #F58932;
+  --color-tangerine-dark: #C4621A;
+  --color-gold: #FED602;
+  --color-gold-dark: #D1AE00;
+  --color-green: #1EB14B;
+  --color-green-dark: #13853A;
+  --color-cobalt: #0088CE;
+  --color-cobalt-dark: #00659A;
+  --color-cobalt-light: #CBE9F8;
+  --color-purple: #7F3896;
+  --color-purple-dark: #5C2470;
+  --color-purple-light: #EBD3F2;
+  --color-pink: #ED0289;
+  --color-pink-dark: #B5006A;
+  --color-grey: #ABAFAE;
+  --color-navy: #1B2A3A;
+  --color-paper: #FFF6DE;
+  --color-offwhite: #F4F7FB;
+  --color-night: #2A2470;
+  --color-night-2: #3B3FA8;
+  --color-grass: #7FCF5A;
+  --color-grass-dark: #4DAA3E;
+
+  --font-display: var(--font-nunito), ui-rounded, system-ui, sans-serif;
+  --font-sans: var(--font-nunito), system-ui, sans-serif;
+}
+
+html, body {
+  height: 100%;
+  background: #0B5E8E;
+  color: var(--color-navy);
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior: none;
+}
+body { font-family: var(--font-sans); }
+
+/* App column: phone-width, centered on larger screens. */
+.app-column {
+  position: relative;
+  margin: 0 auto;
+  width: 100%;
+  max-width: 480px;
+  min-height: 100dvh;
+  overflow: hidden;
+  background: var(--color-offwhite);
+  box-shadow: 0 0 60px rgba(0, 0, 0, 0.25);
+}
+
+.pt-safe { padding-top: max(env(safe-area-inset-top), 12px); }
+.pb-safe { padding-bottom: max(env(safe-area-inset-bottom), 8px); }
+.top-safe { top: max(env(safe-area-inset-top), 12px); }
+/* Room for the tab bar + home indicator. */
+.pb-tabbar { padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
+
+/* Chunky 3D buttons: thick bottom edge, push down on tap. */
+.chunky {
+  --edge: 5px;
+  position: relative;
+  border-radius: 16px;
+  font-weight: 800;
+  box-shadow: 0 var(--edge) 0 var(--btn-edge);
+  transform: translateY(0);
+  transition: transform 90ms ease-out, box-shadow 90ms ease-out;
+  user-select: none;
+  touch-action: manipulation;
+}
+.chunky:active:not(:disabled) {
+  transform: translateY(var(--edge));
+  box-shadow: 0 0 0 var(--btn-edge);
+}
+.chunky:focus-visible { outline: 3px solid var(--btn-edge); outline-offset: 3px; }
+
+.display { font-family: var(--font-display); font-weight: 900; letter-spacing: -0.01em; }
+
+@keyframes drift { from { transform: translateX(-30%); } to { transform: translateX(130%); } }
+@keyframes twinkle { 0%, 100% { opacity: .25; transform: scale(.7); } 50% { opacity: 1; transform: scale(1.1); } }
+@keyframes wiggle { 0%, 100% { transform: rotate(-12deg) translate(0,0); } 25% { transform: rotate(8deg) translate(4px,-3px); } 50% { transform: rotate(-6deg) translate(-2px,2px); } 75% { transform: rotate(10deg) translate(3px,1px); } }
+@keyframes radar { from { transform: scale(.3); opacity: .9; } to { transform: scale(1.6); opacity: 0; } }
+@keyframes float-y { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+@keyframes pulse-q { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.12); } }
+@keyframes star-drift {
+  from { transform: translateY(-5vh); }
+  to { transform: translateY(105vh); }
+}
+
+@keyframes spin-slow { to { transform: rotate(360deg); } }
+@keyframes shimmer { 0% { background-position: 0% 50%; } 100% { background-position: 200% 50%; } }
+
+.cloud { animation: drift linear infinite; }
+.twinkle { animation: twinkle 2.4s ease-in-out infinite; }
+.wiggle { animation: wiggle 1.6s ease-in-out infinite; transform-origin: 30% 70%; }
+.float-y { animation: float-y 3s ease-in-out infinite; }
+.pulse-q { animation: pulse-q 1.4s ease-in-out infinite; }
+
+/* "YOU FOUND ME!" glitch title */
+.glitch {
+  position: relative;
+  background: linear-gradient(90deg, #6FD3FF, #8E9BFF, #C9A8FF, #6FD3FF);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: shimmer 3s linear infinite;
+}
+.glitch::before, .glitch::after {
+  content: attr(data-text);
+  position: absolute; inset: 0;
+  background: inherit;
+  -webkit-background-clip: text; background-clip: text;
+  color: transparent;
+}
+.glitch::before { animation: glitch-a 2.2s steps(1) infinite; text-shadow: -2px 0 rgba(255, 60, 172, .7); }
+.glitch::after { animation: glitch-b 1.9s steps(1) infinite; text-shadow: 2px 0 rgba(0, 220, 255, .7); }
+@keyframes glitch-a {
+  0%, 86%, 100% { clip-path: inset(0 0 100% 0); transform: none; }
+  88% { clip-path: inset(10% 0 60% 0); transform: translate(-4px, 0); }
+  92% { clip-path: inset(55% 0 20% 0); transform: translate(3px, 0); }
+  96% { clip-path: inset(30% 0 45% 0); transform: translate(-2px, 0); }
+}
+@keyframes glitch-b {
+  0%, 80%, 100% { clip-path: inset(0 0 100% 0); transform: none; }
+  83% { clip-path: inset(70% 0 5% 0); transform: translate(4px, 0); }
+  89% { clip-path: inset(20% 0 65% 0); transform: translate(-3px, 0); }
+}
+
+.scroll-x { overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+.scroll-x::-webkit-scrollbar { display: none; }
+
+/* Scroll paper for the daily clue */
+.paper {
+  background:
+    radial-gradient(circle at 20% 30%, rgba(214, 170, 90, .14) 0 18%, transparent 19%),
+    radial-gradient(circle at 80% 70%, rgba(214, 170, 90, .12) 0 14%, transparent 15%),
+    var(--color-paper);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cloud, .twinkle, .wiggle, .float-y, .pulse-q, .glitch, .glitch::before, .glitch::after,
+  .radar-ring, .spin { animation: none !important; }
+  .chunky { transition: none; }
+}

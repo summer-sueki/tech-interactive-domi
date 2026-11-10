@@ -1,0 +1,6 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    { "name": "domi", "runtimeExecutable": "npm", "runtimeArgs": ["--prefix", "domi", "run", "dev", "--", "-p", "3017"], "port": 3017 }
+  ]
+}
